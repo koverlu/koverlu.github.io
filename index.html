@@ -253,6 +253,163 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://61f.tech/2017/06/16/StackWalker/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Kover">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Kover's loft">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/06/16/StackWalker/" itemprop="url">在Release模式下输出调用堆栈</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-16T09:00:00+08:00">
+                2017-06-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h3 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h3><p>调试的时候经常会用到调用堆栈，用VC的话在Debug模式下，碰到异常问题都会停下来，就可以直接看到调用堆栈，但在Release模式下就做不到了。在网上百度了很久，发现可以用MS提供的API(StackWalker)做到这一点，但网上的资料也不是很全，使用的过程中也碰到不少问题，这里记录一下。</p>
+<h3 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h3><p>这里参考了：<a href="https://www.codeproject.com/Articles/11132/Walking-the-callstack" target="_blank" rel="external">https://www.codeproject.com/Articles/11132/Walking-the-callstack</a><br>其实主要用到的就3个函数：</p>
+<ul>
+<li><code>StackWalk</code>，通过指令指针和栈指针获取栈帧(<code>STACKFRAME</code>)。</li>
+<li><code>SymGetSymFromAddr</code>，通过栈帧成员<code>AddrPC.Offset</code>获取符号信息。</li>
+<li><code>SymGetLineFromAddr</code>，通过栈帧成员<code>AddrPC.Offset</code>获取代码文件和代码行信息。</li>
+</ul>
+<p>原文的代码，动态调用了dbghelp.dll，载入了很多系统dll及其符号信息，考虑到的情况比较多，可以直接当作lib来使用，有需要的可以研读学习一下。这里为了学习和小规模的使用，我自己写了个简单版本的：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;windows.h&gt;</span>  </span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span>  </span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;dbghelp.h&gt;</span>  </span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;assert.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">pragma</span> comment( lib, <span class="meta-string">"dbghelp.lib"</span> )  </span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">DumpCallstack</span><span class="params">(CONTEXT *context)</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">if</span> (SymInitialize(GetCurrentProcess(), <span class="literal">NULL</span>, TRUE))</div><div class="line">	&#123;</div><div class="line">		<span class="built_in">printf</span>(<span class="string">"Init dbghelp ok.\n"</span>);</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	STACKFRAME sf;</div><div class="line">	<span class="built_in">memset</span>(&amp;sf, <span class="number">0</span>, <span class="keyword">sizeof</span>(STACKFRAME));</div><div class="line"></div><div class="line">	DWORD machineType = IMAGE_FILE_MACHINE_I386;</div><div class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> _M_IX86    </span></div><div class="line">	sf.AddrPC.Offset = c-&gt;Eip;</div><div class="line">	sf.AddrPC.Mode = AddrModeFlat;</div><div class="line">	sf.AddrStack.Offset = c-&gt;Esp;</div><div class="line">	sf.AddrStack.Mode = AddrModeFlat;</div><div class="line">	sf.AddrFrame.Offset = c-&gt;Ebp;</div><div class="line">	sf.AddrFrame.Mode = AddrModeFlat;</div><div class="line"><span class="meta">#<span class="meta-keyword">elif</span> _M_X64    </span></div><div class="line">	machineType = IMAGE_FILE_MACHINE_AMD64;</div><div class="line">	sf.AddrPC.Offset = context-&gt;Rip;		<span class="comment">//Instruction Pointer</span></div><div class="line">	sf.AddrPC.Mode = AddrModeFlat;</div><div class="line">	sf.AddrFrame.Offset = context-&gt;Rsp;</div><div class="line">	sf.AddrFrame.Mode = AddrModeFlat;</div><div class="line">	sf.AddrStack.Offset = context-&gt;Rsp;		<span class="comment">//Stack Pointer</span></div><div class="line">	sf.AddrStack.Mode = AddrModeFlat;</div><div class="line"><span class="meta">#<span class="meta-keyword">elif</span> _M_IA64    </span></div><div class="line">	machineType = IMAGE_FILE_MACHINE_IA64;</div><div class="line">	sf.AddrPC.Offset = c.StIIP;</div><div class="line">	sf.AddrPC.Mode = AddrModeFlat;</div><div class="line">	sf.AddrFrame.Offset = c.IntSp;</div><div class="line">	sf.AddrFrame.Mode = AddrModeFlat;</div><div class="line">	sf.AddrBStore.Offset = c.RsBSP;</div><div class="line">	sf.AddrBStore.Mode = AddrModeFlat;</div><div class="line">	sf.AddrStack.Offset = c.IntSp;</div><div class="line">	sf.AddrStack.Mode = AddrModeFlat;</div><div class="line"><span class="meta">#<span class="meta-keyword">else</span>    </span></div><div class="line"><span class="meta">#<span class="meta-keyword">error</span> <span class="meta-string">"Platform not supported!"</span>    </span></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span>    </span></div><div class="line"></div><div class="line">	HANDLE hProcess = GetCurrentProcess();</div><div class="line">	HANDLE hThread = GetCurrentThread();</div><div class="line"></div><div class="line">	<span class="keyword">for</span> (; ; )</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> (!StackWalk(machineType, hProcess, hThread, &amp;sf, context, <span class="number">0</span>, SymFunctionTableAccess, SymGetModuleBase, <span class="number">0</span>))</div><div class="line">		&#123;</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (sf.AddrFrame.Offset == <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line">		BYTE symbolBuffer[<span class="keyword">sizeof</span>(IMAGEHLP_SYMBOL) + <span class="number">4096</span>];</div><div class="line">		PIMAGEHLP_SYMBOL pSymbol = (PIMAGEHLP_SYMBOL)symbolBuffer;</div><div class="line"></div><div class="line">		pSymbol-&gt;SizeOfStruct = <span class="keyword">sizeof</span>(IMAGEHLP_SYMBOL);</div><div class="line">		pSymbol-&gt;MaxNameLength = <span class="number">1024</span>;</div><div class="line"></div><div class="line">		DWORD64 symDisplacement = <span class="number">0</span>;</div><div class="line">		<span class="keyword">if</span> (SymGetSymFromAddr(hProcess, sf.AddrPC.Offset, &amp;symDisplacement, pSymbol))</div><div class="line">		&#123;</div><div class="line">			<span class="built_in">printf</span>(<span class="string">"Function : %s\n"</span>, pSymbol-&gt;Name);</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">else</span></div><div class="line">		&#123;</div><div class="line">			DWORD error = GetLastError();</div><div class="line">			<span class="built_in">printf</span>(<span class="string">"SymFromAddr returned error : %d\n"</span>, error);</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		IMAGEHLP_LINE lineInfo;</div><div class="line">		<span class="built_in">memset</span>(&amp;lineInfo, <span class="number">0</span>, <span class="keyword">sizeof</span>(IMAGEHLP_LINE));</div><div class="line">		lineInfo.SizeOfStruct = <span class="keyword">sizeof</span>(IMAGEHLP_LINE);</div><div class="line">		DWORD dwLineDisplacement;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (SymGetLineFromAddr(hProcess, sf.AddrPC.Offset, &amp;dwLineDisplacement, &amp;lineInfo))</div><div class="line">		&#123;</div><div class="line">			<span class="built_in">printf</span>(<span class="string">"[Source File : %s]\n"</span>, lineInfo.FileName);</div><div class="line">			<span class="built_in">printf</span>(<span class="string">"[Source Line : %u]\n"</span>, lineInfo.LineNumber);</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">else</span></div><div class="line">		&#123;</div><div class="line">			DWORD error = GetLastError();</div><div class="line">			<span class="built_in">printf</span>(<span class="string">"SymGetLineFromAddr returned error : %d\n"</span>, error);</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (SymCleanup(GetCurrentProcess()))</div><div class="line">	&#123;</div><div class="line">		<span class="built_in">printf</span>(<span class="string">"Cleanup dbghelp ok.\n"</span>);</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function">DWORD <span class="title">excep_filter</span><span class="params">(LPEXCEPTION_POINTERS lpEP)</span></span></div><div class="line">&#123;</div><div class="line">	DumpCallstack(lpEP-&gt;ContextRecord);</div><div class="line">	<span class="keyword">return</span> EXCEPTION_EXECUTE_HANDLER;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">func0</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> *p = <span class="number">0</span>;</div><div class="line">	*p = <span class="number">10</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">func1</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	CONTEXT c = &#123; <span class="number">0</span> &#125;;</div><div class="line">	c.ContextFlags = CONTEXT_FULL;</div><div class="line">	RtlCaptureContext(&amp;c);</div><div class="line">	DumpCallstack(&amp;c);</div><div class="line">	func0();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">func2</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	func1();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">func3</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	func2();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">test</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	func3();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">StackWalkerMain</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	<span class="number">__</span><span class="keyword">try</span></div><div class="line">	&#123;</div><div class="line">		test();</div><div class="line">	&#125;</div><div class="line">	<span class="number">__</span>except (excep_filter(GetExceptionInformation()))</div><div class="line">	&#123;</div><div class="line">		<span class="built_in">printf</span>(<span class="string">"Some exception occures.\n"</span>);</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div></pre></td><td class="code"><pre><div class="line">Init dbghelp ok.</div><div class="line">Function : func1</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 118]</div><div class="line">Function : func2</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 125]</div><div class="line">Function : func3</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 130]</div><div class="line">Function : test</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 135]</div><div class="line">Function : StackWalkerMain</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 142]</div><div class="line">Function : main</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\main.cpp]</div><div class="line">[Source Line : 41]</div><div class="line">Function : __scrt_common_main_seh</div><div class="line">[Source File : f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl]</div><div class="line">[Source Line : 253]</div><div class="line">Function : BaseThreadInitThunk</div><div class="line">SymGetLineFromAddr returned error : 487</div><div class="line">Function : RtlUserThreadStart</div><div class="line">SymGetLineFromAddr returned error : 487</div><div class="line">Cleanup dbghelp ok.</div><div class="line">Init dbghelp ok.</div><div class="line">Function : func0</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 110]</div><div class="line">Function : func1</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 120]</div><div class="line">Function : func2</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 125]</div><div class="line">Function : func3</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 130]</div><div class="line">Function : test</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 135]</div><div class="line">Function : StackWalkerMain</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\stackwalker.cpp]</div><div class="line">[Source Line : 142]</div><div class="line">Function : main</div><div class="line">[Source File : d:\projects\cplusstudy\cplusstudy14\main.cpp]</div><div class="line">[Source Line : 41]</div><div class="line">Function : __scrt_common_main_seh</div><div class="line">[Source File : f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl]</div><div class="line">[Source Line : 253]</div><div class="line">Function : BaseThreadInitThunk</div><div class="line">SymGetLineFromAddr returned error : 487</div><div class="line">Function : RtlUserThreadStart</div><div class="line">SymGetLineFromAddr returned error : 487</div><div class="line">Cleanup dbghelp ok.</div><div class="line">Some exception occures.</div></pre></td></tr></table></figure></p>
+<h3 id="3-问题"><a href="#3-问题" class="headerlink" title="3. 问题"></a>3. 问题</h3><p>其实代码实现还算比较简单的，但实际使用中碰到了各种头疼的问题，花了很长时间才一一解决了，这里记录一下。</p>
+<h4 id="a-函数使用"><a href="#a-函数使用" class="headerlink" title="a. 函数使用"></a>a. 函数使用</h4><ul>
+<li>看了一些网上帖子，经常有把<code>StackWalk</code>，<code>SymGetSymFromAddr</code>，<code>SymGetLineFromAddr</code>三个函数与其64位的形式(<code>SymGetLineFromAddr64</code>)混合使用，建议全部直接用原文中的宏(函数原名)，可以同时兼容32位和64位的程序。</li>
+<li><code>IMAGEHLP_SYMBOL</code>，<code>IMAGEHLP_LINE</code>中的<code>SizeOfStruct</code>一定要分别等于<code>sizeof(IMAGEHLP_SYMBOL)</code>和<code>sizeof(IMAGEHLP_LINE)</code>，否则<code>SymGetSymFromAddr</code>和<code>SymGetLineFromAddr</code>调用失败返回错误代码。</li>
+<li><code>SymGetLineFromAddr</code>碰到错误代码487 ，表示访问无效地址，一般是缺失pdb文件造成的。<h4 id="b-编译链接"><a href="#b-编译链接" class="headerlink" title="b. 编译链接"></a>b. 编译链接</h4>debug版就不详说了，这里主要针对Release版。要拿到代码文件和代码行信息，就必须生成pdb文件。</li>
+<li>把Linker-&gt;Debugging-&gt;Generate Debug Info设为 Yes(/DEBUG)。</li>
+<li>把C/C++-&gt;General-&gt;Debug Information Format设为Program Database(/Zi)。</li>
+<li>如果得到的调用堆栈信息不全，中间很多函数都省略掉了，可以考虑关掉优化(/Od)，把C/C++-&gt;Optimization-&gt;Optimization设为Disable(/Od)。</li>
+<li>对于cmake，在对应位置加上下面代码即可<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">set(CMAKE_CXX_FLAGS_RELEASE &quot;$&#123;CMAKE_CXX_FLAGS_RELEASE&#125; /Zi&quot;)</div><div class="line">set(CMAKE_EXE_LINKER_FLAGS_RELEASE &quot;$&#123;CMAKE_EXE_LINKER_FLAGS_RELEASE&#125; /debug&quot;)</div></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="4-相关知识"><a href="#4-相关知识" class="headerlink" title="4. 相关知识"></a>4. 相关知识</h3><h4 id="a-SetUnhandledExceptionFilter"><a href="#a-SetUnhandledExceptionFilter" class="headerlink" title="a. SetUnhandledExceptionFilter"></a>a. SetUnhandledExceptionFilter</h4><p>对于很多crash错误，一般由未被正常捕获的异常引起。在程序crash之前，windows操作系统会默认调用<code>UnhandledExceptionFilter</code>来简单处理这个异常。除此，windows提供了一个API函数可以让用户自定义这里这个处理异常的函数，就是<code>SetUnhandledExceptionFilter</code>。用法：<br>先仿造<code>UnhandledExceptionFilter</code>来自己定义一个异常处理函数：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function">LONG WINAPI <span class="title">ExcepFilter</span><span class="params">(<span class="number">_</span>EXCEPTION_POINTERS* pExceptionInfo)</span></span></div><div class="line">&#123;</div><div class="line">	...</div><div class="line">	<span class="keyword">return</span> EXCEPTION_EXECUTE_HANDLER</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><code>pExceptionInfo</code>包含了异常发生时异常线程的状态，返回值有3种：<br><code>EXCEPTION_EXECUTE_HANDLER</code>：表明异常处理完毕，程序可以退出<br><code>EXCEPTION_CONTINUE_EXECUTION</code>：忽略此异常，或者说处理完此异常，从异常点继续运行。如果此时再发生异常，还会调用异常处理函数。<br><code>EXCEPTION_CONTINUE_SEARCH</code>：第三种就是调用默认的方法，可能就是弹出一个框，当然这个默认的方法通常是遵循<code>SetErrorMode</code>的模式。<br>然后在合适的地方调用这个全局函数即可：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">main</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">	::SetUnhandledExceptionFilter(ExcepFilter);</div><div class="line">	...</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>值得注意的是，<code>UnhandledExceptionFilter</code>，以及<code>SetUnhandledExceptionFilter</code>设置的异常处理函数为全局的处理函数，是异常发生以后，最后一次处理异常的机会。如果程序被调试器附加，调试器将优先于上述异常函数处理异常；程序中try{}catch{}和 _try()_catch{}也将会优先处理异常。</p>
+<h4 id="b-try-amp-catch，-try-amp-catch"><a href="#b-try-amp-catch，-try-amp-catch" class="headerlink" title="b. try&amp;catch，_try&amp;_catch"></a>b. try&amp;catch，_try&amp;_catch</h4><p>我会在另外一篇文章来说说这个。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="http://61f.tech/2017/02/23/MultiThread/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1050,7 +1207,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-count">6</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
@@ -1060,10 +1217,10 @@
             
             
             <div class="site-state-item site-state-categories">
-              
+              <a href="/categories/index.html">
                 <span class="site-state-item-count">3</span>
                 <span class="site-state-item-name">分类</span>
-              
+              </a>
             </div>
           
 
@@ -1071,10 +1228,10 @@
             
             
             <div class="site-state-item site-state-tags">
-              
-                <span class="site-state-item-count">6</span>
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">7</span>
                 <span class="site-state-item-name">标签</span>
-              
+              </a>
             </div>
           
 
@@ -1276,6 +1433,21 @@ Hosted by <a href="https://pages.coding.me">Coding Pages</a>
   
 
   
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
 
   
 
